@@ -1,103 +1,175 @@
-#include "Player.h"
+ï»¿#include "Player.h"
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
-Player::Player() 
+// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
+Player::Player()
 {
 }
 
-// ‰Šú‰»‚·‚é
-void Player::Initialize(DirectX::SimpleMath::Vector2 position, float angle, DirectX::SimpleMath::Vector4 color)
+// åˆæœŸåŒ–ã™ã‚‹
+void Player::Initialize(DirectX::SimpleMath::Vector2 position, float angle,DirectX::SimpleMath::Vector4 color)
 {
-	// KeyboardƒIƒuƒWƒFƒNƒg‚ğ¶¬‚·‚é
+	// Keyboardã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’ç”Ÿæˆã™ã‚‹
 	m_keyboard = std::make_unique<DirectX::Keyboard>();
-	// KeyboardStateTrackerƒIƒuƒWƒFƒNƒg‚ğ¶¬‚·‚é
+	// KeyboardStateTrackerã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’ç”Ÿæˆã™ã‚‹
 	m_keyboardTracker = std::make_unique<DirectX::Keyboard::KeyboardStateTracker>();
 
-	// TankFactoryƒIƒuƒWƒFƒNƒg‚ğ¶¬‚·‚é
+	// TankFactoryã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’ç”Ÿæˆã™ã‚‹
 	TankFactory tankFactory(position, angle, color);
-	// BodyƒIƒuƒWƒFƒNƒg‚ğ¶¬‚·‚é 
+	// Bodyã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’ç”Ÿæˆã™ã‚‹ 
 	m_tank = tankFactory.Create(Tank::PARTS_ID::BODY);
-	// TurretƒIƒuƒWƒFƒN‚ğ¶¬‚·‚é
+	// Turretã‚ªãƒ–ã‚¸ã‚§ã‚¯ã‚’ç”Ÿæˆã™ã‚‹
 	Tank* turret = tankFactory.Create(Tank::PARTS_ID::TURRET);
-	// CannonƒIƒuƒWƒFƒN‚ğ¶¬‚·‚é
+	// Cannonã‚ªãƒ–ã‚¸ã‚§ã‚¯ã‚’ç”Ÿæˆã™ã‚‹
 	Tank* cannon = tankFactory.Create(Tank::PARTS_ID::CANNON);
-	// TurretƒIƒuƒWƒFƒNƒg‚ÉCannonƒIƒuƒWƒFƒNƒg‚ğ’Ç‰Á‚·‚é
+	// Turretã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã«Cannonã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’è¿½åŠ ã™ã‚‹
 	turret->AddParts(cannon);
-	// BodyƒIƒuƒWƒFƒNƒg‚ÉTurretƒIƒuƒWƒFƒNƒg‚ğ’Ç‰Á‚·‚é
+	// Bodyã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã«Turretã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’è¿½åŠ ã™ã‚‹
 	m_tank->AddParts(turret);
+	// äº‹å‰ã«å¼¾ã‚’é…åˆ—åˆ†ç”Ÿæˆã™ã‚‹ãŸã‚ã€ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã«ç™ºå°„ã™ã‚‹å¼¾ã®ä½ç½®ã€æœ¬ä½“å›è»¢è§’ã€é¾çµ±å›è»¢è§’ã‚’è¨­å®šã§ããªã„
+	m_bulletFactory = std::make_unique<BulletFactory>();
+	// Bulletã®Initialize
+	m_bulletFactory->Initialize();
+
+	m_bullets.resize(BulletFactory::BULLET_NUM);
+
+	for (int i = 0; i < BulletFactory::BULLET_NUM; i++)
+	{
+		m_bullets[i] = new Bullet();
+	}
+	//é£›ã‚“ã§ã‚‹å¼¾0
+	m_bulletNum = 0;
 }
 
-// PlayerƒIƒuƒWƒFƒNƒg‚ğXV‚·‚é
-bool Player::Update(const DX::StepTimer& timer) 
+// Playerã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ›´æ–°ã™ã‚‹
+bool Player::Update(const DX::StepTimer& timer)
 {
-	// ƒL[ƒ{[ƒh‚Ìó‘Ô‚ğæ“¾‚·‚é
+	// ã‚­ãƒ¼ãƒœãƒ¼ãƒ‰ã®çŠ¶æ…‹ã‚’å–å¾—ã™ã‚‹
 	DirectX::Keyboard::State keyboardState = m_keyboard->GetState();
-	// ƒL[ƒ{[ƒhƒgƒ‰ƒbƒJ[‚ğXV‚·‚é
+	// ã‚­ãƒ¼ãƒœãƒ¼ãƒ‰ãƒˆãƒ©ãƒƒã‚«ãƒ¼ã‚’æ›´æ–°ã™ã‚‹
 	m_keyboardTracker->Update(keyboardState);
 
-	// ‘¬“x‚ğƒŠƒZƒbƒg‚·‚é
+	// é€Ÿåº¦ã‚’ãƒªã‚»ãƒƒãƒˆã™ã‚‹
 	m_tank->SetVelocity(DirectX::SimpleMath::Vector2(0.0f, 0.0f));
-	// ‰E‚É‰ñ“]‚·‚é
+	// å³ã«å›è»¢ã™ã‚‹
 	if (keyboardState.IsKeyDown(DirectX::Keyboard::Keys::Right))
 	{
-		// ‰ñ“]Šp‚ğİ’è‚·‚é
+		// å›è»¢è§’ã‚’è¨­å®šã™ã‚‹
 		m_tank->SetBodyAngle(m_tank->GetBodyAngle() - DirectX::XMConvertToRadians(1.0f));
 	}
-	// ¶‚É‰ñ“]‚·‚é
+	// å·¦ã«å›è»¢ã™ã‚‹
 	else if (keyboardState.IsKeyDown(DirectX::Keyboard::Keys::Left))
 	{
-		// ‰ñ“]Šp‚ğİ’è‚·‚é
+		// å›è»¢è§’ã‚’è¨­å®šã™ã‚‹
 		m_tank->SetBodyAngle(m_tank->GetBodyAngle() + DirectX::XMConvertToRadians(1.0f));
 	}
-	// ‘Oi‚·‚é
+	// å‰é€²ã™ã‚‹
 	if (keyboardState.IsKeyDown(DirectX::Keyboard::Keys::Up))
 	{
-		// ‰ñ“]s—ñ‚ğ¶¬‚·‚é
+		// å›è»¢è¡Œåˆ—ã‚’ç”Ÿæˆã™ã‚‹
 		DirectX::SimpleMath::Matrix rotation = DirectX::SimpleMath::Matrix::CreateRotationZ(-m_tank->GetBodyAngle());
-		// ‘¬“x‚ğİ’è‚·‚é
+		// é€Ÿåº¦ã‚’è¨­å®šã™ã‚‹
 		m_tank->SetVelocity(DirectX::SimpleMath::Vector2::Transform(Tank::SPEED, rotation));
 	}
-	// Œã‘Ş‚·‚é
+	// å¾Œé€€ã™ã‚‹
 	else if (keyboardState.IsKeyDown(DirectX::Keyboard::Keys::Down))
 	{
-		// ‰ñ“]s—ñ‚ğ¶¬‚·‚é
+		// å›è»¢è¡Œåˆ—ã‚’ç”Ÿæˆã™ã‚‹
 		DirectX::SimpleMath::Matrix rotation = DirectX::SimpleMath::Matrix::CreateRotationZ(-m_tank->GetBodyAngle());
-		// ‘¬“x‚ğİ’è‚·‚é
+		// é€Ÿåº¦ã‚’è¨­å®šã™ã‚‹
 		m_tank->SetVelocity(-DirectX::SimpleMath::Vector2::Transform(Tank::SPEED, rotation));
 	}
 
-	// Turret‚ğ‰E‚É‰ñ“]‚·‚é
 	if (keyboardState.IsKeyDown(DirectX::Keyboard::Keys::D))
 	{
+		// å›è»¢è§’ã‚’è¨­å®šã™ã‚‹
 		m_tank->SetTurretAngle(m_tank->GetTurretAngle() - DirectX::XMConvertToRadians(1.0f));
 	}
-	// Turret‚ğ¶‚É‰ñ“]‚·‚é
-	if (keyboardState.IsKeyDown(DirectX::Keyboard::Keys::A))
+	// å·¦ã«å›è»¢ã™ã‚‹
+	else if (keyboardState.IsKeyDown(DirectX::Keyboard::Keys::A))
 	{
+		// å›è»¢è§’ã‚’è¨­å®šã™ã‚‹
 		m_tank->SetTurretAngle(m_tank->GetTurretAngle() + DirectX::XMConvertToRadians(1.0f));
 	}
 
-	// ˆÚ“®‚·‚é
+	// ç§»å‹•ã™ã‚‹
 	m_tank->SetPosition(m_tank->GetPosition() + m_tank->GetVelocity());
-	// TankƒIƒuƒWƒFƒNƒg‚ğXV‚·‚é
+	// Tankã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æ›´æ–°ã™ã‚‹
 	m_tank->Update(timer);
 
+	if (keyboardState.IsKeyDown(DirectX::Keyboard::Keys::Space))
+	{
+		DirectX::SimpleMath::Vector2 offset = DirectX::SimpleMath::Vector2(64, 0);
+
+		DirectX::SimpleMath::Matrix rotation = DirectX::SimpleMath::Matrix::CreateRotationZ(-m_tank->GetBodyAngle() - m_tank->GetTurretAngle());
+
+		DirectX::SimpleMath::Vector2 position = m_tank->GetPosition() + DirectX::SimpleMath::Vector2::Transform(offset, rotation);
+
+		if (timer.GetFrameCount() % 5 == 0)
+		{
+			for (int i = 0; i < BulletFactory::BULLET_NUM; i++)
+			{
+				if (m_bullets[i] == nullptr)
+				{
+					m_bullets[i] = m_bulletFactory->Create(position, -m_tank->GetBodyAngle() - m_tank->GetTurretAngle());
+					m_bulletNum++;
+					break;
+				}
+
+				else if (m_bullets[i]->IsUsed() == false)
+				{
+					m_bullets[i] = m_bulletFactory->Create(position, -m_tank->GetBodyAngle() - m_tank->GetTurretAngle());
+					break;
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < BulletFactory::BULLET_NUM; i++)
+	{
+		if (m_bullets[i]->IsUsed())
+		{
+			m_bullets[i]->Update(timer);
+		}
+	}
+
+	int regionMin = 0 - Bullet::SIZE / 2;
+	int regionMaxWidth = 800;
+	int regionMaxHeight = 600;
+
+	for (int i = 0; i < BulletFactory::BULLET_NUM; i++)
+	{
+		int bulletX = (int)m_bullets[i]->GetPosition().x;
+		int bulletY = (int)m_bullets[i]->GetPosition().y;
+
+		if (bulletX < regionMin || bulletY < regionMin || bulletX > regionMaxWidth || bulletY > regionMaxHeight)
+		{
+			m_bullets[i]->IsUsed(false);
+		}
+	}
 	return true;
 }
 
-// ƒXƒvƒ‰ƒCƒg‚ğ•`‰æ‚·‚é
+// ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆã‚’æç”»ã™ã‚‹
 void Player::Render(DirectX::SpriteBatch& spriteBatch)
 {
-	// TankƒIƒuƒWƒFƒNƒg‚ğ•`‰æ‚·‚é
+	// Tankã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’æç”»ã™ã‚‹
 	m_tank->Render(spriteBatch, m_tank->GetPosition(), m_tank->GetBodyAngle(), m_tank->GetColor());
+
+	for (int i = 0; i < BulletFactory::BULLET_NUM; i++)
+	{
+		if (m_bullets[i]->IsUsed())
+		{
+			m_bullets[i]->Render(spriteBatch);
+		}
+	}
 }
 
-// Œãˆ—‚ğ‚¨‚±‚È‚¤
-void Player::Finalize() 
+// å¾Œå‡¦ç†ã‚’ãŠã“ãªã†
+void Player::Finalize()
 {
-	// Ä‹A“I‚ÉTankƒIƒuƒWƒFƒNƒg‚ÌŒãˆ—‚ğ‚¨‚±‚È‚¤
-	m_tank->Finalize();	
-	// TankƒIƒuƒWƒFƒNƒg‚ğƒŠƒZƒbƒg‚·‚é
-	if(m_tank != nullptr)
+	// å†å¸°çš„ã«Tankã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®å¾Œå‡¦ç†ã‚’ãŠã“ãªã†
+	m_tank->Finalize();
+	// Tankã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã‚’ãƒªã‚»ãƒƒãƒˆã™ã‚‹
+	if (m_tank != nullptr)
 		delete m_tank;
 }

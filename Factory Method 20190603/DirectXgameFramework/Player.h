@@ -16,16 +16,17 @@
 #include "Tank.h"
 #include "Turret.h"
 #include "Body.h"
-#include "Cannon.h"
+#include "BulletFactory.h"
+#include "Bullet.h"
 
 // Playerクラス
-class Player 
+class Player
 {
 public:
 	// コンストラクタ
 	Player();
 	// 初期化する
-	void Initialize(DirectX::SimpleMath::Vector2 position, float angle,DirectX::SimpleMath::Vector4 color);
+	void Initialize(DirectX::SimpleMath::Vector2 position,float angle,DirectX::SimpleMath::Vector4 color);
 	// 更新する
 	bool Update(const DX::StepTimer& timer);
 	// 描画する
@@ -34,8 +35,6 @@ public:
 	void Finalize();
 
 private:
-	// テクスチャ
-	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_texture;
 	// キーボード 
 	std::unique_ptr<DirectX::Keyboard> m_keyboard;
 	// キーボードステートトラッカ
@@ -43,6 +42,13 @@ private:
 
 	// タンク
 	Tank* m_tank;
+	// BulletFactoryオブジェクト
+	std::unique_ptr<BulletFactory> m_bulletFactory;
+
+	// Bulletオブジェクト配列
+	std::vector<Bullet*> m_bullets;
+	// Bulletの飛行弾数
+	int m_bulletNum;
 };
 
 #endif // PLAYER_DEFINED

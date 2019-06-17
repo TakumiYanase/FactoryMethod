@@ -3,7 +3,6 @@
 #include <d3d11_1.h>
 #include <DirectXMath.h>
 #include <SimpleMath.h>
-#include <DirectXMath.h>
 #include <vector>
 #include "StepTimer.h"
 #include "dx.h"
